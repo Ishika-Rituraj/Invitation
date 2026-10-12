@@ -500,18 +500,47 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       var no=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)setOn(e.target.dataset.k)})},{rootMargin:'-42% 0px -55% 0px'});
       document.querySelectorAll('.card[data-k]').forEach(function(c){no.observe(c)});
     }
-    /* music (downloads only when a guest taps play) */
-    var a=document.getElementById('bgm'),m=document.getElementById('music');
-    if(MUSIC_FILE){
-      a.src=MUSIC_FILE;
-      var show=function(){m.hidden=false};
-      if(location.protocol==='file:'){show()}else{fetch(MUSIC_FILE,{method:'HEAD'}).then(function(r){if(r.ok)show()}).catch(function(){})}
-      m.addEventListener('click',function(){
-        if(a.paused){a.play().then(function(){m.classList.add('on');m.setAttribute('aria-label','Pause music')}).catch(function(){})}
-        else{a.pause();m.classList.remove('on');m.setAttribute('aria-label','Play music')}
+    
+    /* Music: attempt autoplay when the invitation opens */
+    var a = document.getElementById('bgm');
+    var m = document.getElementById('music');
+    
+    if (MUSIC_FILE) {
+      a.src = MUSIC_FILE;
+      a.loop = true;
+      a.preload = 'auto';
+    
+      function startMusic() {
+        a.play().then(function () {
+          m.classList.add('on');
+          m.setAttribute('aria-label', 'Pause music');
+          m.title = 'Pause music';
+        }).catch(function () {
+          // Autoplay blocked: show the music button as a fallback.
+          m.hidden = false;
+        });
+      }
+    
+      // Attempt to play music as soon as the page opens.
+      startMusic();
+    
+      // Let guests play or pause music manually if needed.
+      m.addEventListener('click', function () {
+        if (a.paused) {
+          startMusic();
+        } else {
+          a.pause();
+          m.classList.remove('on');
+          m.setAttribute('aria-label', 'Play music');
+          m.title = 'Play music';
+        }
       });
-      a.addEventListener('error',function(){m.hidden=true});
+    
+      a.addEventListener('error', function () {
+        m.hidden = true;
+      });
     }
+
     /* rose petals over the invitation */
     var inv=document.getElementById('invite'),pe=document.getElementById('petals');
     if(inv&&pe&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){
