@@ -460,7 +460,7 @@ html.js .rv.in{opacity:1;transform:none}
 <footer><span class="script">Ishika &amp; Rituraj</span>18 – 19 December 2026</footer>
 </main>
 <button class="music" id="music" hidden aria-label="Play music" title="Play music"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6Z"/></svg><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span></button>
-<audio id="bgm" loop preload="none"></audio>
+<audio id="bgm" loop preload="auto"></audio>
 
 <script>
 /* ===== Easy settings — edit these two lines if you like ===== */
@@ -500,17 +500,39 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       var no=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)setOn(e.target.dataset.k)})},{rootMargin:'-42% 0px -55% 0px'});
       document.querySelectorAll('.card[data-k]').forEach(function(c){no.observe(c)});
     }
-    /* music (downloads only when a guest taps play) */
+    /* music (autostart + toggle) */
     var a=document.getElementById('bgm'),m=document.getElementById('music');
     if(MUSIC_FILE){
       a.src=MUSIC_FILE;
+      var setOn=function(on){
+        m.classList.toggle('on',on);
+        m.setAttribute('aria-label',on?'Pause music':'Play music');
+      };
       var show=function(){m.hidden=false};
       if(location.protocol==='file:'){show()}else{fetch(MUSIC_FILE,{method:'HEAD'}).then(function(r){if(r.ok)show()}).catch(function(){})}
       m.addEventListener('click',function(){
-        if(a.paused){a.play().then(function(){m.classList.add('on');m.setAttribute('aria-label','Pause music')}).catch(function(){})}
-        else{a.pause();m.classList.remove('on');m.setAttribute('aria-label','Play music')}
+        if(a.paused){a.play().then(function(){setOn(true)}).catch(function(){})}
+        else{a.pause();setOn(false)}
       });
       a.addEventListener('error',function(){m.hidden=true});
+    
+      /* autostart attempt */
+      var tryPlay=function(){
+        var p=a.play();
+        if(p&&p.then){p.then(function(){setOn(true)}).catch(function(){})}
+      };
+      tryPlay();
+    
+      /* if the browser blocked autoplay, start on the first user interaction */
+      var unlock=function(){
+        if(a.paused){tryPlay()}
+        ['pointerdown','touchstart','keydown','scroll'].forEach(function(ev){
+          window.removeEventListener(ev,unlock);
+        });
+      };
+      ['pointerdown','touchstart','keydown','scroll'].forEach(function(ev){
+        window.addEventListener(ev,unlock,{passive:true});
+      });
     }
     /* rose petals over the invitation */
     var inv=document.getElementById('invite'),pe=document.getElementById('petals');
