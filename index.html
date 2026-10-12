@@ -501,60 +501,62 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       document.querySelectorAll('.card[data-k]').forEach(function(c){no.observe(c)});
     }
     
-
-   
+    
     /* Music: autoplay attempt + mobile touch support */
     var a = document.getElementById('bgm');
     var m = document.getElementById('music');
     
-    if (MUSIC_FILE) {
+    if (MUSIC_FILE && a && m) {
       a.src = MUSIC_FILE;
       a.loop = true;
       a.preload = 'auto';
       a.playsInline = true;
     
-      // Show the music control as a fallback.
+      // Show music control as a fallback.
       m.hidden = false;
+    
+      function updateMusicButton(isPlaying) {
+        m.classList.toggle('on', isPlaying);
+        m.setAttribute(
+          'aria-label',
+          isPlaying ? 'Pause music' : 'Play music'
+        );
+        m.title = isPlaying ? 'Pause music' : 'Play music';
+      }
     
       function startMusic() {
         if (!a.paused) return;
     
-        // Call play directly from the interaction handler for mobile browsers.
+        // Playback may be blocked until a valid user gesture occurs.
         var result = a.play();
     
-        if (result && result.then) {
+        if (result && typeof result.then === 'function') {
           result.then(function () {
-            m.classList.add('on');
-            m.setAttribute('aria-label', 'Pause music');
-            m.title = 'Pause music';
+            updateMusicButton(true);
           }).catch(function (err) {
+            // Keep the control visible so the user can start music manually.
             console.log('Music playback was blocked or failed:', err);
           });
         }
       }
     
       function handleFirstInteraction(event) {
-        // Don't let the page-level handler interfere with the music button.
+        // Ignore interactions with the music button itself.
         if (event && (event.target === m || m.contains(event.target))) {
           return;
         }
     
-        if (a.paused) {
-          startMusic();
-        }
+        startMusic();
       }
     
-      // Attempt autoplay when the page loads.
+      // Attempt autoplay on page load.
       startMusic();
-      
-      // Start music on the first scroll, especially on mobile.
+    
+      // Retry on scroll. Do not remove these listeners after a failed attempt.
       function handleFirstScroll() {
         if (a.paused) {
           startMusic();
         }
-    
-        window.removeEventListener('scroll', handleFirstScroll);
-        window.removeEventListener('touchmove', handleFirstScroll);
       }
     
       window.addEventListener('scroll', handleFirstScroll, {
@@ -564,18 +566,20 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       window.addEventListener('touchmove', handleFirstScroll, {
         passive: true
       });
-
-      // Start music on the first tap or click anywhere else on the page.
+    
+      // Retry on real user interactions.
       document.addEventListener('touchstart', handleFirstInteraction, {
         capture: true,
         passive: true
       });
     
       document.addEventListener('pointerdown', handleFirstInteraction, true);
+    
       document.addEventListener('click', handleFirstInteraction, true);
     
-      // Music icon: play or pause.
+      // Music button: play or pause.
       m.addEventListener('click', function (event) {
+        event.preventDefault();
         event.stopPropagation();
     
         if (a.paused) {
@@ -585,16 +589,13 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
         }
       });
     
+      // Keep the button state synchronized with audio playback.
       a.addEventListener('play', function () {
-        m.classList.add('on');
-        m.setAttribute('aria-label', 'Pause music');
-        m.title = 'Pause music';
+        updateMusicButton(true);
       });
     
       a.addEventListener('pause', function () {
-        m.classList.remove('on');
-        m.setAttribute('aria-label', 'Play music');
-        m.title = 'Play music';
+        updateMusicButton(false);
       });
     
       a.addEventListener('error', function () {
@@ -602,7 +603,6 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
         m.hidden = true;
       });
     }
-
 
 
     /* rose petals over the invitation */
