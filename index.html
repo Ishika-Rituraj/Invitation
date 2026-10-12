@@ -501,7 +501,8 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       document.querySelectorAll('.card[data-k]').forEach(function(c){no.observe(c)});
     }
     
-    /* Music: attempt autoplay when the invitation opens */
+
+    /* Music: autoplay attempt with first-interaction fallback */
     var a = document.getElementById('bgm');
     var m = document.getElementById('music');
     
@@ -510,36 +511,76 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       a.loop = true;
       a.preload = 'auto';
     
-      function startMusic() {
-        a.play().then(function () {
-          m.classList.add('on');
-          m.setAttribute('aria-label', 'Pause music');
-          m.title = 'Pause music';
-        }).catch(function () {
-          // Autoplay blocked: show the music button as a fallback.
-          m.hidden = false;
-        });
+      function updateMusicButton(isPlaying) {
+        m.classList.toggle('on', isPlaying);
+        m.setAttribute(
+          'aria-label',
+          isPlaying ? 'Pause music' : 'Play music'
+        );
+        m.title = isPlaying ? 'Pause music' : 'Play music';
+        m.hidden = false;
       }
     
-      // Attempt to play music as soon as the page opens.
-      startMusic();
+      function startMusic() {
+        a.play()
+          .then(function () {
+            updateMusicButton(true);
+          })
+          .catch(function () {
+            // Autoplay may be blocked until the visitor interacts.
+            updateMusicButton(false);
+          });
+      }
     
-      // Let guests play or pause music manually if needed.
+      // Attempt autoplay as soon as possible.
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startMusic, {
+          once: true
+        });
+      } else {
+        startMusic();
+      }
+    
+      // Retry when the visitor first interacts with the page.
+      function firstInteraction() {
+        if (a.paused) {
+          startMusic();
+        }
+    
+        document.removeEventListener('click', firstInteraction);
+        document.removeEventListener('touchstart', firstInteraction);
+        document.removeEventListener('keydown', firstInteraction);
+      }
+    
+      document.addEventListener('click', firstInteraction);
+      document.addEventListener('touchstart', firstInteraction, {
+        passive: true
+      });
+      document.addEventListener('keydown', firstInteraction);
+    
+      // Keep the music button available for play/pause.
       m.addEventListener('click', function () {
         if (a.paused) {
           startMusic();
         } else {
           a.pause();
-          m.classList.remove('on');
-          m.setAttribute('aria-label', 'Play music');
-          m.title = 'Play music';
+          updateMusicButton(false);
         }
+      });
+    
+      a.addEventListener('play', function () {
+        updateMusicButton(true);
+      });
+    
+      a.addEventListener('pause', function () {
+        updateMusicButton(false);
       });
     
       a.addEventListener('error', function () {
         m.hidden = true;
       });
     }
+
 
     /* rose petals over the invitation */
     var inv=document.getElementById('invite'),pe=document.getElementById('petals');
