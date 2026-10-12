@@ -546,7 +546,25 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
     
       // Attempt autoplay when the page loads.
       startMusic();
+      
+      // Start music on the first scroll, especially on mobile.
+      function handleFirstScroll() {
+        if (a.paused) {
+          startMusic();
+        }
     
+        window.removeEventListener('scroll', handleFirstScroll);
+        window.removeEventListener('touchmove', handleFirstScroll);
+      }
+    
+      window.addEventListener('scroll', handleFirstScroll, {
+        passive: true
+      });
+    
+      window.addEventListener('touchmove', handleFirstScroll, {
+        passive: true
+      });
+
       // Start music on the first tap or click anywhere else on the page.
       document.addEventListener('touchstart', handleFirstInteraction, {
         capture: true,
