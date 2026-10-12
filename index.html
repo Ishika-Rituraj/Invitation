@@ -502,7 +502,8 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
     }
     
 
-    /* Music: autoplay attempt with first-interaction fallback */
+   
+    /* Music: autoplay attempt + mobile touch support */
     var a = document.getElementById('bgm');
     var m = document.getElementById('music');
     
@@ -510,76 +511,80 @@ var LOCATION = "Via Lakhela Lakeview Resort, Pratap Marg, Fort Road, Kumbhalgarh
       a.src = MUSIC_FILE;
       a.loop = true;
       a.preload = 'auto';
+      a.playsInline = true;
     
-      function updateMusicButton(isPlaying) {
-        m.classList.toggle('on', isPlaying);
-        m.setAttribute(
-          'aria-label',
-          isPlaying ? 'Pause music' : 'Play music'
-        );
-        m.title = isPlaying ? 'Pause music' : 'Play music';
-        m.hidden = false;
-      }
+      // Show the music control as a fallback.
+      m.hidden = false;
     
       function startMusic() {
-        a.play()
-          .then(function () {
-            updateMusicButton(true);
-          })
-          .catch(function () {
-            // Autoplay may be blocked until the visitor interacts.
-            updateMusicButton(false);
+        if (!a.paused) return;
+    
+        // Call play directly from the interaction handler for mobile browsers.
+        var result = a.play();
+    
+        if (result && result.then) {
+          result.then(function () {
+            m.classList.add('on');
+            m.setAttribute('aria-label', 'Pause music');
+            m.title = 'Pause music';
+          }).catch(function (err) {
+            console.log('Music playback was blocked or failed:', err);
           });
+        }
       }
     
-      // Attempt autoplay as soon as possible.
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', startMusic, {
-          once: true
-        });
-      } else {
-        startMusic();
-      }
+      function handleFirstInteraction(event) {
+        // Don't let the page-level handler interfere with the music button.
+        if (event && (event.target === m || m.contains(event.target))) {
+          return;
+        }
     
-      // Retry when the visitor first interacts with the page.
-      function firstInteraction() {
         if (a.paused) {
           startMusic();
         }
-    
-        document.removeEventListener('click', firstInteraction);
-        document.removeEventListener('touchstart', firstInteraction);
-        document.removeEventListener('keydown', firstInteraction);
       }
     
-      document.addEventListener('click', firstInteraction);
-      document.addEventListener('touchstart', firstInteraction, {
+      // Attempt autoplay when the page loads.
+      startMusic();
+    
+      // Start music on the first tap or click anywhere else on the page.
+      document.addEventListener('touchstart', handleFirstInteraction, {
+        capture: true,
         passive: true
       });
-      document.addEventListener('keydown', firstInteraction);
     
-      // Keep the music button available for play/pause.
-      m.addEventListener('click', function () {
+      document.addEventListener('pointerdown', handleFirstInteraction, true);
+      document.addEventListener('click', handleFirstInteraction, true);
+    
+      // Music icon: play or pause.
+      m.addEventListener('click', function (event) {
+        event.stopPropagation();
+    
         if (a.paused) {
           startMusic();
         } else {
           a.pause();
-          updateMusicButton(false);
         }
       });
     
       a.addEventListener('play', function () {
-        updateMusicButton(true);
+        m.classList.add('on');
+        m.setAttribute('aria-label', 'Pause music');
+        m.title = 'Pause music';
       });
     
       a.addEventListener('pause', function () {
-        updateMusicButton(false);
+        m.classList.remove('on');
+        m.setAttribute('aria-label', 'Play music');
+        m.title = 'Play music';
       });
     
       a.addEventListener('error', function () {
+        console.log('Unable to load music file:', MUSIC_FILE);
         m.hidden = true;
       });
     }
+
 
 
     /* rose petals over the invitation */
